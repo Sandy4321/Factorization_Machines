@@ -17,11 +17,14 @@ class Fm:
 
     def __init__(self, k, task):
         if not (type(k) == int and k > 0):
-            raise
+            raise Exception('the k is wrong')
         self.k = k
-        if not task not in [0, 1]:
-            raise
-        self.task = task
+        if task not in ['c', 'r']:
+            raise Exception('the task is wrong')
+        if task == 'c':
+            self.task = 0
+        else:
+            self.task = 1
 
     def load(self, addr):
         '''
@@ -121,24 +124,24 @@ class Fm:
         :return:
         '''
         if len(x_s) != len(y_s):
-            raise Exception('')
+            raise Exception('length of x and y are different')
         if type(x_s) == list:
             x_len = -1
             for i in x_s:
                 if x_len != -1 and x_len != len(i):
-                    raise Exception('')
+                    raise Exception('dimension of x is not fixed')
                 x_len = len(i)
                 for j in i:
                     if type(j) not in [int, float]:
-                        raise Exception('')
+                        raise Exception('type of x is wrong')
             x_s = np.array(x_s)
         if type(y_s) == list:
             for i in y_s:
                 if type(i) not in [int, float]:
-                    raise Exception('')
+                    raise Exception('type of y is wrong')
             y_s = np.array(y_s)
         if type(x_s) != np.ndarray or type(y_s) != np.ndarray:
-            raise Exception('')
+            raise Exception('type of y or x is wrong')
 
         self.n = x_s.shape[1]
         self.w_0 = 0.0
@@ -151,9 +154,17 @@ class Fm:
 
     def _learn_classify(self, x_s, y_s):
         for i in range(self.iter):
+            prev_mult = 0
             for x, y in zip(x_s, y_s):
+                # if y == 1:
+                #     print 1
+                # else:
+                #     print -1
                 y_p = self._predict(x)
-                mult = -y*(1.0-1.0/(1+np.exp(y*y_p)))
+                mult = -y*(1.0-1.0/(1+np.exp(-y*y_p)))
+                if prev_mult != 0:
+                    mult = mult*0.1 + prev_mult*0.9
+                prev_mult = mult
                 self.w_0 -= self.learning_rate*mult
                 for x_iter in range(self.n):
                     self.w[x_iter] -= self.learning_rate*mult*x[x_iter]
@@ -163,12 +174,16 @@ class Fm:
                                                   (x[x_iter]*np.dot(self.v[:, k_iter], x)-self.v[x_iter, k_iter]*x[x_iter]**2)
 
     def _learn_regress(self, x_s, y_s):
-        self.max = np.max(y_s)
-        self.min = np.min(y_s)
+        self.max_y = np.max(y_s)
+        self.min_y = np.min(y_s)
         for i in range(self.iter):
+            prev_mult = 0
             for x, y in zip(x_s, y_s):
                 y_p = self._predict(x)
                 mult = -(y-y_p)
+                if prev_mult != 0:
+                    mult = mult*0.1 + prev_mult*0.9
+                prev_mult = mult
                 self.w_0 -= self.learning_rate*mult
                 for x_iter in range(self.n):
                     self.w[x_iter] -= self.learning_rate*mult*x[x_iter]
@@ -202,7 +217,7 @@ class Fm:
         for k_iter in range(self.k):
             y_p += 0.5*np.dot(self.v[:, k_iter], x)**2-\
                    0.5*np.dot(self.v[:, k_iter]**2, x**2)
-        y_p = 1.0/(1.0+np.exp(-y_p))
+        y_p = (1.0/(1.0+np.exp(-y_p))-0.5)*2
         return y_p
 
     def _predict_regress(self, x):
@@ -210,9 +225,12 @@ class Fm:
         for k_iter in range(self.k):
             y_p += 0.5*np.dot(self.v[:, k_iter], x)**2-\
                    0.5*np.dot(self.v[:, k_iter]**2, x**2)
-        y_p = np.min(self.max_y, y_p)
-        y_p = np.max(self.min_y, y_p)
+        y_p = np.min([self.max_y, y_p])
+        y_p = np.max([self.min_y, y_p])
         return y_p
+
+    def test(self, x_s, y_s):
+        pass
 
     def _data_validate(self, x):
         if len(x) != self.n:
