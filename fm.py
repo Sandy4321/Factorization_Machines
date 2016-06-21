@@ -57,7 +57,7 @@ class Fm:
             if len(s) != 2 or s[0] != 'n':
                 raise Exception('formation of input file is wrong. n')
             else:
-                self.k = int(s[1])
+                self.n = int(s[1])
             s = f.readline().encode('utf-8').strip().split(':')
             if len(s) != 2 or s[0] != 'learning_rate':
                 raise Exception('formation of input file is wrong. learning_rate')
@@ -83,7 +83,8 @@ class Fm:
                 if len(tmp) != self.n*self.k:
                     raise Exception('formation of input file is wrong. v')
                 else:
-                    self.v = tmp.resize(self.n, self.k)
+                    tmp.resize([self.n, self.k])
+                    self.v = tmp
             if self.task == 1:
                 s = f.readline().encode('utf-8').strip().split(':')
                 if len(s) != 2 or s[0] != 'max':
@@ -106,17 +107,28 @@ class Fm:
         '''
         with codecs.open(addr, 'wb', 'utf-8') as f:
             f.write('k:'+str(self.k))
+            f.write('\n')
             f.write('task:'+str(self.task))
+            f.write('\n')
             f.write('iter:'+str(self.iter))
+            f.write('\n')
             f.write('threshold:'+str(self.threshold))
+            f.write('\n')
             f.write('n:'+str(self.n))
+            f.write('\n')
             f.write('learning_rate:'+str(self.learning_rate))
+            f.write('\n')
             f.write('w_0:'+str(self.w_0))
+            f.write('\n')
             f.write('w:'+' '.join([str(w) for w in self.w]))
-            f.write('v:'+' '.join([str(v) for v in self.np.reshape(self.v, (1, self.n*self.k))[0]]))
+            f.write('\n')
+            f.write('v:'+' '.join([str(v) for v in np.reshape(self.v, (1, self.n*self.k))[0]]))
+            f.write('\n')
             if self.task == 1:
                 f.write('max:'+str(self.max))
+                f.write('\n')
                 f.write('min:'+str(self.min))
+                f.write('\n')
 
     def learn(self, x_s, y_s):
         '''
@@ -161,7 +173,7 @@ class Fm:
                 # else:
                 #     print -1
                 y_p = self._predict(x)
-                mult = -y*(1.0-1.0/(1+np.exp(-y*y_p)))
+                mult = -y*(1.0-1.0/(1+np.exp(-y*y_p)))*np.exp(y_p)/(1.+np.exp(y_p))**2
                 if prev_mult != 0:
                     mult = mult*0.1 + prev_mult*0.9
                 prev_mult = mult

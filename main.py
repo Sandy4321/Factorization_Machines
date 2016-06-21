@@ -30,3 +30,7 @@ if __name__ == '__main__':
     print fm_.w
     print fm_.v
     print fm_.predict(train_x)
+    fm_.save('tmp')
+    fm_1 = fm.Fm(5, 'c')
+    fm_1.load('tmp')
+    print fm_1.predict(train_x)
